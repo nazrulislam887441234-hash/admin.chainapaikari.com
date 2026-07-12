@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Orders - chainapaikari</title>
+<link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600;700&family=Poppins:wght@700&display=swap" rel="stylesheet">
+<style>
+:root{--primary:#00c8ff;--accent:#00ff88;--danger:#ef4444;--warning:#f59e0b;}
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Hind Siliguri';}
+body{background:#f0f9ff;padding:20px;}
+.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;max-width:1400px;margin:0 auto 20px;}
+.header h1{font-family:'Poppins';background:linear-gradient(90deg,var(--primary),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.filter-bar{background:#fff;padding:15px 20px;border-radius:15px;margin-bottom:20px;max-width:1400px;margin:0 auto 20px;display:flex;gap:15px;align-items:center;box-shadow:0 5px 20px rgba(0,0,0,.05);}
+.filter-bar select{padding:10px 15px;border-radius:10px;border:2px solid #e2e8f0;font-size:15px;font-weight:600;}
+.container{max-width:1400px;margin:0 auto;display:grid;gap:20px;}
+.order-card{background:#fff;border-radius:20px;padding:25px;box-shadow:0 10px 40px rgba(0,200,255,.1);border-left:5px solid var(--primary);}
+.order-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;flex-wrap:wrap;gap:10px;}
+.order-id{font-weight:700;font-size:18px;color:#0f172a;}
+.status-badge{padding:6px 14px;border-radius:20px;font-weight:700;font-size:13px;}
+.status-নতুন{background:#dbeafe;color:#1e40af;}
+.status-কনফার্ম{background:#fef3c7;color:#92400e;}
+.status-ডেলিভারিড{background:#d1fae5;color:#065f46;}
+.status-ক্যানসেল{background:#fee2e2;color:#991b1b;}
+.status-শিপিং{background:#d1fae5;color:#065f46;}
+
+.customer-info{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px;margin-bottom:15px;font-size:14px;}
+.customer-info p strong{color:#475569;}
+.items-list{margin:15px 0;border-top:1px solid #f1f5f9;padding-top:15px;}
+.items-list h4{margin-bottom:10px;}
+.item-row{
+    display:flex;
+    justify-content:space-between;
+    font-size:14px;
+    padding:6px 0;
+}
+
+.summary-row{
+    display:flex;
+    justify-content:space-between;
+    padding:6px 0;
+    font-size:15px;
+    color:#334155;
+}
+
+.total-amount{
+    text-align:right;
+    font-weight:700;
+    font-size:18px;
+    color:var(--accent);
+    margin:15px 0;
+}
+.actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+.actions select{padding:10px;border-radius:10px;border:2px solid #e2e8f0;font-weight:600;}
+.btn-update{padding:10px 20px;background:linear-gradient(90deg,var(--primary),var(--accent));color:#fff;border:none;border-radius:10px;font-weight:700;cursor:pointer;}
+.empty{text-align:center;padding:50px;color:#94a3b8;font-size:18px;}
+
+.loading{text-align:center;padding:50px;font-weight:700;color:var(--primary);}
+.btn-delete{
+    padding:10px 20px;
+    background:#ef4444;
+    color:#fff;
+    border:none;
+    border-radius:10px;
+    font-weight:700;
+    cursor:pointer;
+}
+
+.btn-delete:hover{
+    background:#dc2626;
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+    <h1>📦 সকল অর্ডার</h1>
+    <a href="dashboard.html" style="color:var(--primary);font-weight:700;text-decoration:none;">← Dashboard</a>
+</div>
+
+<div class="filter-bar">
+    <label style="font-weight:700;">ফিল্টার করুন:</label>
+    <select id="statusFilter" onchange="loadOrders()">
+        <option value="all">সব অর্ডার</option>
+        <option value="নতুন">নতুন</option>
+        <option value="কনফার্ম">কনফার্ম</option>
+        <option value="ডেলিভারিড">ডেলিভারিড</option>
+        <option value="ক্যানসেল">ক্যানসেল</option>
+        <option value="শিপিং">শিপিং</option>
+    </select>
+</div>
+
+<div class="container" id="ordersContainer">
+    <div class="loading">লোড হচ্ছে...</div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, collection, getDocs, doc, updateDoc, deleteDoc, orderBy, query } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+const firebaseConfig = {apiKey:"AIzaSyA5q-gEWhHbBB_kn0ZDNPYXC2urpSbpPd8",authDomain:"chaina-paikari.firebaseapp.com",projectId:"chaina-paikari",storageBucket:"chaina-paikari.firebasestorage.app",messagingSenderId:"968909884753",appId:"1:968909884753:web:88ab6754c2edda39bb1770"};
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+
+onAuthStateChanged(auth, (user) => {
+    if (!user) {
+        window.location.href = "index.html";
+        return;
+    }
+
+    if (user.email !== "mmrsbd2@gmail.com") {
+        alert("আপনার অনুমতি নেই");
+        window.location.href = "index.html";
+        return;
+    }
+
+    loadOrders();
+});
+
+let allOrders = [];
+
+async function loadOrders(){
+    const container = document.getElementById('ordersContainer');
+    const filter = document.getElementById('statusFilter').value;
+    container.innerHTML = '<div class="loading">লোড হচ্ছে...</div>';
+
+    try {
+        const q = query(collection(db, "orders"), orderBy("createdAt", "desc"));
+        const snapshot = await getDocs(q);
+        allOrders = [];
+        snapshot.forEach(docSnap => {
+            allOrders.push({id: docSnap.id, ...docSnap.data()});
+        });
+
+        let filteredOrders = filter == 'all' ? allOrders : allOrders.filter(o => o.status == filter);
+        
+        if(filteredOrders.length == 0){
+            container.innerHTML = '<div class="empty">কোনো অর্ডার পাওয়া যায়নি</div>';
+            return;
+        }
+
+        container.innerHTML = '';
+        filteredOrders.forEach(order => {
+            const date = order.createdAt?.toDate().toLocaleString('bn-BD') || 'N/A';
+            let itemsHtml = '';
+            order.items.forEach(item => {
+                itemsHtml += `<div class="item-row"><span>${item.name} x ${item.qty}</span><span>${item.price * item.qty} ৳</span></div>`;
+            });
+
+            container.innerHTML += `
+            <div class="order-card">
+                <div class="order-top">
+                    <div class="order-id">Order ID: ${order.orderId}</div>
+                    <span class="status-badge status-${order.status}">${order.status}</span>
+                </div>
+                
+                <div class="customer-info">
+                    <p><strong>নাম:</strong> ${order.name}</p>
+                    <p><strong>ফোন:</strong> ${order.phone}</p>
+                    <p><strong>ঠিকানা:</strong> ${order.thana}, ${order.district}, ${order.division}</p>
+                    <p><strong>তারিখ:</strong> ${date}</p>
+                </div>
+                <p><strong>সম্পূর্ণ ঠিকানা:</strong> ${order.address}</p>
+                ${order.note ? `<p><strong>নোট:</strong> ${order.note}</p>` : ''}
+
+              <div class="items-list">
+    <h4>পণ্যের তালিকা:</h4>
+    ${itemsHtml}
+</div>
+
+<div class="summary-row">
+    <span>পণ্যের দাম:</span>
+    <span>${order.subTotal || 0} ৳</span>
+</div>
+
+<div class="summary-row">
+    <span>ডেলিভারি চার্জ:</span>
+    <span>${order.deliveryCharge || 0} ৳</span>
+</div>
+
+<div class="total-amount">
+    মোট: ${order.total} ৳
+</div>
+
+                <div class="actions">
+                    <label>স্ট্যাটাস পরিবর্তন:</label>
+                    <select id="status-${order.id}">
+                        <option value="নতুন" ${order.status=='নতুন'?'selected':''}>নতুন</option>
+                        <option value="কনফার্ম" ${order.status=='কনফার্ম'?'selected':''}>কনফার্ম</option>
+                        <option value="ডেলিভারিড" ${order.status=='ডেলিভারিড'?'selected':''}>ডেলিভারিড</option>
+                        <option value="ক্যানসেল" ${order.status=='ক্যানসেল'?'selected':''}>ক্যানসেল</option>
+                        <option value="শিপিং" ${order.status=='শিপিং'?'selected':''}>শিপিং</option>
+                    </select>
+                    <button class="btn-update" onclick="updateStatus('${order.id}')">আপডেট করুন</button>
+<button class="btn-delete" onclick="deleteOrder('${order.id}')">
+    🗑️ Delete
+</button>
+                </div>
+            </div>`;
+        });
+
+    } catch(err){
+        container.innerHTML = `<div class="empty">Error: ${err.message}</div>`;
+    }
+}
+
+window.updateStatus = async (orderId) => {
+    const newStatus = document.getElementById(`status-${orderId}`).value;
+    try {
+        await updateDoc(doc(db, "orders", orderId), { status: newStatus });
+        alert("✅ স্ট্যাটাস আপডেট হয়েছে");
+        loadOrders();
+    } catch(err){
+        alert("❌ Error: " + err.message);
+    }
+}
+window.deleteOrder = async (orderId) => {
+
+    if(!confirm("আপনি কি নিশ্চিত এই অর্ডারটি ডিলিট করবেন?")){
+        return;
+    }
+
+    try{
+        await deleteDoc(doc(db, "orders", orderId));
+
+        alert("✅ অর্ডার ডিলিট হয়েছে");
+
+        loadOrders();
+
+    }catch(err){
+        alert("❌ Error: " + err.message);
+    }
+
+}
+</script>
+</body>
+</html>
