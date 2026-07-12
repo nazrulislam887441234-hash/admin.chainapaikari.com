@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>সব Product - chainapaikari</title>
+<link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600;700&family=Poppins:wght@700&display=swap" rel="stylesheet">
+<style>
+:root{--primary:#00c8ff;--accent:#00ff88;--danger:#ef4444;--bg1:#0f172a;--bg2:#1e293b;}
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Hind Siliguri',sans-serif;}
+body{min-height:100vh;background:linear-gradient(135deg,var(--bg1) 0%,var(--bg2) 100%);padding:20px;color:#e2e8f0;}
+.card{max-width:1200px;margin:20px auto;background:rgba(255,255,255,.06);backdrop-filter:blur(20px);padding:30px;border-radius:25px;border:1px solid rgba(255,255,255,.1);}
+h2{text-align:center;font-family:'Poppins';margin-bottom:25px;font-size:28px;background:linear-gradient(90deg,var(--primary),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.top-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:15px;}
+.top-bar a{color:var(--primary);font-weight:700;text-decoration:none;}
+.btn-new{background:linear-gradient(90deg,var(--primary),var(--accent));padding:12px 20px;border-radius:10px;color:#0f172a;font-weight:700;text-decoration:none;}
+.filters{display:grid;grid-template-columns:2fr 1fr;gap:15px;margin-bottom:25px;}
+.filters input, .filters select{width:100%;padding:14px;border-radius:12px;border:2px solid rgba(255,255,255,.1);background:rgba(0,0,0,.2);color:#fff;font-size:16px;}
+.product-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px;}
+.product-card{background:rgba(0,0,0,.2);border-radius:15px;padding:15px;border:1px solid rgba(255,255,255,.1);transition:.3s;}
+.product-card:hover{transform:translateY(-5px);border-color:var(--primary);}
+.product-card img{width:100%;height:200px;object-fit:cover;border-radius:10px;margin-bottom:10px;}
+.product-card h3{font-size:18px;margin-bottom:8px;color:#fff;}
+.product-card .price{color:var(--accent);font-weight:700;font-size:18px;}
+.product-card .old-price{text-decoration:line-through;color:#94a3b8;font-size:14px;margin-left:8px;}
+.product-card .cat{font-size:12px;color:#94a3b8;margin:5px 0;}
+.btn-group{display:flex;gap:8px;margin-top:12px;}
+.btn-edit, .btn-delete{flex:1;padding:10px;border:none;border-radius:8px;font-weight:700;cursor:pointer;}
+.btn-edit{background:var(--primary);color:#0f172a;}
+.btn-delete{background:var(--danger);color:#fff;}
+#loadMore{width:100%;padding:14px;margin-top:25px;background:rgba(255,255,255,.1);border:2px solid var(--primary);color:var(--primary);border-radius:12px;font-weight:700;cursor:pointer;font-size:16px;}
+#loadMore:hover{background:var(--primary);color:#0f172a;}
+#loadMore:disabled{opacity:0.5;cursor:not-allowed;}
+#status{text-align:center;margin:20px 0;color:#94a3b8;}
+</style>
+</head>
+<body>
+
+<div class="card">
+<div class="top-bar">
+    <a href="dashboard.html">← Dashboard</a>
+    <a href="products.html" class="btn-new">+ নতুন Product</a>
+    <span id="logout" style="color:var(--danger);cursor:pointer;font-weight:700;">Logout</span>
+</div>
+
+<h2>সব Product</h2>
+
+<div class="filters">
+    <input type="text" id="searchInput" placeholder="🔍 নাম বা Keyword দিয়ে সার্চ করুন...">
+    <select id="categoryFilter">
+        <option value="">সব Category</option>
+    </select>
+</div>
+
+<div id="status">Product লোড হচ্ছে...</div>
+<div class="product-grid" id="productGrid"></div>
+<button id="loadMore">See More</button>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, collection, getDocs, doc, deleteDoc, query, orderBy, limit, startAfter } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyA5q-gEWhHbBB_kn0ZDNPYXC2urpSbpPd8",
+  authDomain: "chaina-paikari.firebaseapp.com",
+  projectId: "chaina-paikari",
+  storageBucket: "chaina-paikari.firebasestorage.app",
+  messagingSenderId: "968909884753",
+  appId: "1:968909884753:web:88ab6754c2edda39bb1770"
+};
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+// Auth Guard
+onAuthStateChanged(auth, user => {
+    if(!user) window.location.href = "index.html";
+})
+document.getElementById('logout').onclick = () => signOut(auth);
+
+let allProducts = []; // সব product cache
+let allCategories = [];
+let displayedProducts = [];
+let lastVisible = null;
+let isLoading = false;
+const LIMIT = 20;
+
+// ডিবাউন্স ফাংশন
+function debounce(func, wait) {
+    let timeout;
+    return function(...args) {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(this, args), wait);
+    };
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    loadCategories();
+    loadProducts();
+    initEvents();
+})
+
+function initEvents(){
+    document.getElementById('searchInput').oninput = debounce(handleSearch, 300);
+    document.getElementById('categoryFilter').onchange = handleSearch;
+    document.getElementById('loadMore').onclick = loadMoreProducts;
+}
+
+async function loadCategories(){
+    const snapshot = await getDocs(collection(db, "categories"));
+    allCategories = snapshot.docs.map(doc => ({id: doc.id,...doc.data()}));
+    const select = document.getElementById('categoryFilter');
+    allCategories.forEach(cat => {
+        select.innerHTML += `<option value="${cat.id}">${cat.name}</option>`;
+    });
+}
+
+async function loadProducts(reset = true){
+    if(isLoading) return;
+    isLoading = true;
+    document.getElementById('status').innerText = "Product লোড হচ্ছে...";
+    
+    if(reset){
+        allProducts = [];
+        displayedProducts = [];
+        document.getElementById('productGrid').innerHTML = '';
+    }
+
+    try {
+        const q = query(collection(db, "products"), orderBy("createdAt", "desc"), limit(LIMIT));
+        const snapshot = await getDocs(q);
+        
+        if(snapshot.empty){
+            document.getElementById('status').innerText = "কোনো Product নেই";
+            document.getElementById('loadMore').style.display = 'none';
+            isLoading = false;
+            return;
+        }
+
+        lastVisible = snapshot.docs[snapshot.docs.length - 1];
+        allProducts = snapshot.docs.map(doc => ({id: doc.id,...doc.data()}));
+        displayedProducts = [...allProducts];
+        renderProducts(displayedProducts);
+        
+        document.getElementById('status').innerText = "";
+        document.getElementById('loadMore').style.display = 'block';
+        
+        if(snapshot.docs.length < LIMIT){
+            document.getElementById('loadMore').disabled = true;
+            document.getElementById('loadMore').innerText = "আর কোনো Product নেই";
+        }
+
+    } catch(err){
+        document.getElementById('status').innerText = "Error: " + err.message;
+    }
+    isLoading = false;
+}
+
+async function loadMoreProducts(){
+    if(isLoading || !lastVisible) return;
+    isLoading = true;
+    document.getElementById('loadMore').innerText = "Loading...";
+    
+    const q = query(collection(db, "products"), orderBy("createdAt", "desc"), startAfter(lastVisible), limit(LIMIT));
+    const snapshot = await getDocs(q);
+    
+    if(!snapshot.empty){
+        lastVisible = snapshot.docs[snapshot.docs.length - 1];
+        const newProducts = snapshot.docs.map(doc => ({id: doc.id,...doc.data()}));
+        allProducts = [...allProducts, ...newProducts];
+        handleSearch(); // বর্তমান ফিল্টার apply করো
+    }
+    
+    if(snapshot.docs.length < LIMIT){
+        document.getElementById('loadMore').disabled = true;
+        document.getElementById('loadMore').innerText = "আর কোনো Product নেই";
+    } else {
+        document.getElementById('loadMore').innerText = "See More";
+    }
+    isLoading = false;
+}
+
+function handleSearch(){
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+    const catId = document.getElementById('categoryFilter').value;
+    
+    displayedProducts = allProducts.filter(p => {
+        const matchSearch = p.name.toLowerCase().includes(searchTerm) || 
+                           p.keywords.some(k => k.toLowerCase().includes(searchTerm));
+        const matchCat = catId === '' || p.categoryId === catId;
+        return matchSearch && matchCat;
+    });
+    
+    renderProducts(displayedProducts);
+}
+
+function renderProducts(products){
+    const grid = document.getElementById('productGrid');
+    grid.innerHTML = '';
+    
+    if(products.length === 0){
+        document.getElementById('status').innerText = "কোনো Product পাওয়া যায়নি";
+        return;
+    }
+    
+    document.getElementById('status').innerText = "";
+    
+    products.forEach(p => {
+        const catName = allCategories.find(c => c.id === p.categoryId)?.name || 'Unknown';
+        const card = `
+            <div class="product-card">
+                <img src="${p.images[0]}" alt="${p.name}">
+                <h3>${p.name}</h3>
+                <p class="price">৳${p.currentPrice} <span class="old-price">৳${p.oldPrice}</span></p>
+                <p class="cat">Category: ${catName}</p>
+                <div class="btn-group">
+                    <button class="btn-edit" onclick="editProduct('${p.id}')">Edit</button>
+                    <button class="btn-delete" onclick="deleteProduct('${p.id}')">Delete</button>
+                </div>
+            </div>
+        `;
+        grid.innerHTML += card;
+    });
+}
+
+window.editProduct = (id) => {
+    window.location.href = `product-edit.html?id=${id}`;
+}
+
+window.deleteProduct = async (id) => {
+    if(!confirm("আপনি কি এই Product টি ডিলিট করতে চান?")) return;
+    
+    try {
+        await deleteDoc(doc(db, "products", id));
+        allProducts = allProducts.filter(p => p.id !== id);
+        handleSearch();
+        alert("✅ Product Deleted!");
+    } catch(err){
+        alert("❌ Error: " + err.message);
+    }
+}
+</script>
+</body>
+</html>
