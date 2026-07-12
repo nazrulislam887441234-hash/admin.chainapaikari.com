@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Contact Links - chainapaikari</title>
+<link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600;700&family=Poppins:wght@700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+:root{--primary:#00c8ff;--accent:#00ff88;--danger:#ef4444;--bg1:#0f172a;--bg2:#1e293b;}
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Hind Siliguri',sans-serif;}
+body{min-height:100vh;background:linear-gradient(135deg,var(--bg1) 0%,var(--bg2) 100%);padding:15px;color:#e2e8f0;}
+.card{max-width:700px;margin:10px auto;background:rgba(255,255,255,.06);backdrop-filter:blur(20px);padding:25px;border-radius:20px;border:1px solid rgba(255,255,255,.1);}
+h2{text-align:center;font-family:'Poppins';margin-bottom:25px;font-size:24px;background:linear-gradient(90deg,var(--primary),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+label{font-weight:600;margin-top:15px;display:block;color:#94a3b8;font-size:14px;}
+input{width:100%;padding:14px;margin-top:8px;border-radius:12px;border:2px solid rgba(255,255,255,.1);background:rgba(0,0,0,.2);color:#fff;font-size:16px;}
+input:focus{outline:none;border-color:var(--primary);}
+.input-group{display:flex;gap:10px;align-items:center;margin-top:8px;}
+.input-group i{font-size:22px;width:30px;text-align:center;color:var(--accent);}
+#saveBtn{background:linear-gradient(90deg,var(--primary),var(--accent));width:100%;padding:16px;margin-top:20px;color:#0f172a;font-weight:700;font-size:17px;border:none;border-radius:12px;cursor:pointer;}
+.top-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;}
+.top-bar a{color:var(--primary);font-weight:700;text-decoration:none;font-size:14px;}
+#status{text-align:center;margin-top:15px;font-weight:600;font-size:14px;}
+.toggle-wrap{display:flex;justify-content:space-between;align-items:center;background:rgba(0,0,0,.2);padding:15px;border-radius:12px;margin-top:10px;}
+.switch{position:relative;display:inline-block;width:50px;height:26px;}
+.switch input{opacity:0;width:0;height:0;}
+.slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background-color:#334155;transition:.4s;border-radius:34px;}
+.slider:before{position:absolute;content:"";height:18px;width:18px;left:4px;bottom:4px;background-color:white;transition:.4s;border-radius:50%;}
+input:checked + .slider{background-color:var(--accent);}
+input:checked + .slider:before{transform:translateX(24px);}
+.whatsapp-box{display:none;margin-top:10px;}
+.whatsapp-box.show{display:block;}
+.contact-list{margin-top:30px;}
+.contact-item{display:flex;align-items:center;justify-content:space-between;background:rgba(0,0,0,.2);padding:12px;border-radius:12px;margin-bottom:10px;border:1px solid rgba(255,255,255,.1);gap:10px;flex-wrap:wrap;}
+.contact-item.info{display:flex;align-items:center;gap:10px;flex:1;min-width:0;}
+.contact-item.info i{font-size:20px;}
+.btn-group{display:flex;gap:8px;}
+.btn-edit{background:var(--primary);color:#0f172a;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:700;font-size:13px;}
+.btn-delete{background:var(--danger);color:#fff;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:700;font-size:13px;}
+@media (max-width: 480px) {
+    body{padding:10px;}
+   .card{padding:20px;}
+    h2{font-size:22px;}
+    input{padding:12px;font-size:15px;}
+    #saveBtn{padding:14px;font-size:16px;}
+   .contact-item{flex-direction:column;align-items:flex-start;}
+   .btn-group{width:100%;margin-top:8px;}
+   .btn-edit, .btn-delete{flex:1;}
+}
+</style>
+</head>
+<body>
+
+<div class="card">
+<div class="top-bar">
+    <a href="dashboard.html">← Dashboard</a>
+    <span id="logout" style="color:var(--danger);cursor:pointer;font-weight:700;">Logout</span>
+</div>
+
+<h2>Contact Information</h2>
+
+<form id="contactForm">
+    <div class="toggle-wrap">
+        <label style="margin:0;">Live Support ON</label>
+        <label class="switch">
+          <input type="checkbox" id="liveSupport">
+          <span class="slider"></span>
+        </label>
+    </div>
+
+    <div class="whatsapp-box" id="whatsappBox">
+        <label>WhatsApp Number *</label>
+        <div class="input-group">
+            <i class="fa-brands fa-whatsapp"></i>
+            <input type="tel" id="whatsapp" placeholder="8801XXXXXXXXX">
+        </div>
+    </div>
+
+    <label>Email Address</label>
+    <div class="input-group">
+        <i class="fa-solid fa-envelope"></i>
+        <input type="email" id="email" placeholder="support@chainapaikari.com">
+    </div>
+
+    <label>Phone Number</label>
+    <div class="input-group">
+        <i class="fa-solid fa-phone"></i>
+        <input type="tel" id="phone" placeholder="01XXXXXXXXX">
+    </div>
+
+    <button type="submit" id="saveBtn">Save Contact</button>
+</form>
+
+<div id="status"></div>
+
+<div class="contact-list">
+    <h3 style="margin-bottom:15px;">Saved Contact</h3>
+    <div id="contactList">লোড হচ্ছে...</div>
+</div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyA5q-gEWhHbBB_kn0ZDNPYXC2urpSbpPd8",
+  authDomain: "chaina-paikari.firebaseapp.com",
+  projectId: "chaina-paikari",
+  storageBucket: "chaina-paikari.firebasestorage.app",
+  messagingSenderId: "968909884753",
+  appId: "1:968909884753:web:88ab6754c2edda39bb1770"
+};
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+// Auth Guard
+onAuthStateChanged(auth, user => {
+    if(!user) window.location.href = "index.html";
+})
+document.getElementById('logout').onclick = () => signOut(auth);
+
+let editId = null; // Edit করার জন্য ID
+
+document.addEventListener('DOMContentLoaded', () => {
+    loadContact();
+    initEvents();
+})
+
+function initEvents(){
+    document.getElementById('liveSupport').onchange = toggleWhatsapp;
+    document.getElementById('contactForm').onsubmit = handleSave;
+}
+
+function toggleWhatsapp(){
+    const box = document.getElementById('whatsappBox');
+    const isChecked = document.getElementById('liveSupport').checked;
+    if(isChecked){
+        box.classList.add('show');
+        document.getElementById('whatsapp').required = true;
+    } else {
+        box.classList.remove('show');
+        document.getElementById('whatsapp').required = false;
+    }
+}
+
+async function handleSave(e){
+  e.preventDefault();
+  const btn = document.getElementById('saveBtn');
+  btn.disabled = true;
+  btn.innerText = "Saving...";
+
+  const liveSupport = document.getElementById('liveSupport').checked;
+  const whatsapp = document.getElementById('whatsapp').value;
+  const email = document.getElementById('email').value;
+  const phone = document.getElementById('phone').value;
+
+  const data = {
+    liveSupport: liveSupport,
+    whatsapp: liveSupport ? whatsapp : "",
+    email: email,
+    phone: phone,
+    updatedAt: serverTimestamp()
+  };
+
+  try {
+    if(editId){
+        // Update
+        await updateDoc(doc(db, "contactLinks", editId), data);
+        document.getElementById('status').innerText = "✅ Updated!";
+    } else {
+        // New Add
+        await addDoc(collection(db, "contactLinks"), {...data, createdAt: serverTimestamp()});
+        document.getElementById('status').innerText = "✅ Saved!";
+    }
+
+    document.getElementById('status').style.color = '#00ff88';
+    resetForm();
+    loadContact();
+    setTimeout(() => {document.getElementById('status').innerText = ""}, 2000);
+  } catch(err){
+    document.getElementById('status').style.color = 'var(--danger)';
+    document.getElementById('status').innerText = "❌ Error: " + err.message;
+  }
+  btn.disabled = false;
+  btn.innerText = "Save Contact";
+}
+
+async function loadContact(){
+    const listDiv = document.getElementById('contactList');
+    listDiv.innerHTML = "লোড হচ্ছে...";
+    try {
+        const q = query(collection(db, "contactLinks"), orderBy("createdAt", "desc"));
+        const snapshot = await getDocs(q);
+
+        if(snapshot.empty){
+            listDiv.innerHTML = "<p style='color:#94a3b8;'>কোনো Contact নেই</p>";
+            return;
+        }
+
+        listDiv.innerHTML = '';
+        snapshot.docs.forEach(docSnap => {
+            const data = docSnap.data();
+            const item = `
+                <div class="contact-item">
+                    <div class="info">
+                        ${data.liveSupport ? `<i class="fa-brands fa-whatsapp" style="color:#25D366"></i> WA: ${data.whatsapp}` : ''}
+                        ${data.email ? `<i class="fa-solid fa-envelope" style="color:#EA4335"></i> ${data.email}` : ''}
+                        ${data.phone ? `<i class="fa-solid fa-phone" style="color:#34A853"></i> ${data.phone}` : ''}
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn-edit" onclick="editContact('${docSnap.id}', ${JSON.stringify(data).replace(/"/g, '&quot;')})">Edit</button>
+                        <button class="btn-delete" onclick="deleteContact('${docSnap.id}')">Delete</button>
+                    </div>
+                </div>
+            `;
+            listDiv.innerHTML += item;
+        });
+    } catch(err){
+        listDiv.innerHTML = "Error: " + err.message;
+    }
+}
+
+window.editContact = (id, data) => {
+    editId = id;
+    document.getElementById('liveSupport').checked = data.liveSupport;
+    document.getElementById('whatsapp').value = data.whatsapp;
+    document.getElementById('email').value = data.email;
+    document.getElementById('phone').value = data.phone;
+    toggleWhatsapp();
+    document.getElementById('saveBtn').innerText = "Update Contact";
+    window.scrollTo({top:0, behavior:'smooth'});
+}
+
+window.deleteContact = async (id) => {
+    if(!confirm("এই Contact টি ডিলিট করবেন?")) return;
+    try {
+        await deleteDoc(doc(db, "contactLinks", id));
+        loadContact();
+        alert("✅ Deleted!");
+    } catch(err){
+        alert("❌ Error: " + err.message);
+    }
+}
+
+function resetForm(){
+    editId = null;
+    document.getElementById('contactForm').reset();
+    document.getElementById('whatsappBox').classList.remove('show');
+    document.getElementById('saveBtn').innerText = "Save Contact";
+}
+</script>
+</body>
+</html>
