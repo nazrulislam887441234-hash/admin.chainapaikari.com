@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Categories List - chainapaikari</title>
+<link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600;700&family=Poppins:wght@700&display=swap" rel="stylesheet">
+<style>
+:root{--primary:#00c8ff;--accent:#00ff88;--text:#0a0f1e;--danger:#ef4444;}
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Hind Siliguri',sans-serif;}
+body{min-height:100vh;background:linear-gradient(135deg,#e0f7ff 0%,#f0f9ff 100%);padding:20px;}
+.blob{position:fixed;border-radius:50%;filter:blur(80px);opacity:.2;z-index:0;}
+.blob1{width:400px;height:400px;background:linear-gradient(135deg,#00c8ff,#00ff88);top:-100px;left:-100px;}
+.blob2{width:300px;height:300px;background:linear-gradient(135deg,#7c3aed,#00c8ff);bottom:-80px;right:-80px;}
+
+.navbar{position:relative;z-index:2;background:rgba(255,255,255,.7);backdrop-filter:blur(20px);padding:18px 25px;border-radius:15px;display:flex;justify-content:space-between;align-items:center;margin-bottom:25px;border:1px solid rgba(255,255,255,.5);}
+.back-btn{color:var(--primary);font-weight:700;text-decoration:none;}
+.logout-btn{color:var(--danger);background:rgba(239,68,68,.1);padding:8px 16px;border-radius:10px;font-weight:700;cursor:pointer;border:none;}
+
+.container{position:relative;z-index:2;max-width:1200px;margin:0 auto;}
+.search-box{width:100%;padding:14px 18px;border-radius:12px;border:2px solid #e2e8f0;background:#fff;font-size:16px;margin-bottom:25px;}
+.search-box:focus{outline:none;border-color:var(--primary);}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px;}
+.card{background:rgba(255,255,255,.8);backdrop-filter:blur(20px);border-radius:20px;border:1px solid rgba(255,255,255,.6);overflow:hidden;transition:.3s;box-shadow:0 10px 30px rgba(0,200,255,.1);}
+.card:hover{transform:translateY(-5px);}
+.card img{width:100%;height:180px;object-fit:cover;}
+.card-body{padding:18px;}
+.card-body h3{font-size:18px;margin-bottom:5px;color:var(--text);}
+.card-body .slug{font-size:12px;color:#059669;background:rgba(0,255,136,.1);padding:3px 8px;border-radius:6px;display:inline-block;margin-bottom:12px;}
+.btn-group{display:flex;gap:10px;}
+.btn{flex:1;padding:10px;border:none;border-radius:10px;font-weight:700;cursor:pointer;font-size:14px;transition:.3s;}
+.btn-edit{background:linear-gradient(90deg,var(--primary),var(--accent));color:#fff;}
+.btn-delete{background:rgba(239,68,68,.1);color:var(--danger);}
+.btn:hover{transform:scale(1.05);}
+
+.loading{text-align:center;padding:50px;font-size:18px;color:#64748b;}
+
+/* Modal */
+.modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);backdrop-filter:blur(5px);justify-content:center;align-items:center;z-index:10;}
+.modal-content{background:#fff;padding:30px;border-radius:20px;width:90%;max-width:450px;}
+.modal-content h2{margin-bottom:20px;}
+.modal-content input{width:100%;padding:14px;margin-bottom:15px;border:2px solid #e2e8f0;border-radius:10px;font-size:16px;}
+.modal-content img{width:100%;max-height:150px;object-fit:cover;border-radius:10px;margin-bottom:15px;}
+.modal-btns{display:flex;gap:10px;}
+</style>
+</head>
+<body>
+
+<div class="blob blob1"></div>
+<div class="blob blob2"></div>
+
+<div class="navbar">
+    <a href="dashboard.html" class="back-btn">← Dashboard</a>
+    <button class="logout-btn" id="logout">Logout</button>
+</div>
+
+<div class="container">
+    <input type="text" class="search-box" id="search" placeholder="🔍 Category খুঁজুন...">
+
+    <div class="grid" id="categoryGrid">
+        <div class="loading">Loading Categories... ⏳</div>
+    </div>
+</div>
+
+<!-- Edit Modal -->
+<div class="modal" id="editModal">
+    <div class="modal-content">
+        <h2>Category Edit করুন</h2>
+        <img id="editPreview">
+        <input type="file" id="editImage" accept="image/*">
+        <input type="text" id="editName" placeholder="Category Name">
+        <input type="text" id="editSlug" placeholder="Slug" readonly>
+        <div class="modal-btns">
+            <button class="btn btn-edit" id="saveBtn">Save</button>
+            <button class="btn btn-delete" id="cancelBtn">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, collection, getDocs, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyA5q-gEWhHbBB_kn0ZDNPYXC2urpSbpPd8",
+  authDomain: "chaina-paikari.firebaseapp.com",
+  projectId: "chaina-paikari",
+  storageBucket: "chaina-paikari.firebasestorage.app",
+  messagingSenderId: "968909884753",
+  appId: "1:968909884753:web:88ab6754c2edda39bb1770"
+};
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+const IMGBB_API_KEY = "66eddb56876c5803445f41302121a9b9";
+let allCategories = [];
+let editId = null;
+let newImageFile = null;
+
+// Auth Guard
+onAuthStateChanged(auth, user => {
+  if(!user) window.location.href = "index.html";
+})
+document.getElementById('logout').onclick = () => signOut(auth);
+
+// Load Categories
+async function loadCategories(){
+    const snapshot = await getDocs(collection(db, "categories"));
+    allCategories = snapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
+    renderCategories(allCategories);
+}
+
+function renderCategories(categories){
+    const grid = document.getElementById('categoryGrid');
+    if(categories.length === 0){
+        grid.innerHTML = `<div class="loading">কোনো Category পাওয়া যায়নি</div>`;
+        return;
+    }
+    grid.innerHTML = categories.map(cat => `
+        <div class="card">
+            <img src="${cat.image}" alt="${cat.name}">
+            <div class="card-body">
+                <h3>${cat.name}</h3>
+                <span class="slug">/${cat.slug}</span>
+                <div class="btn-group">
+                    <button class="btn btn-edit" onclick='openEdit("${cat.id}")'>Edit</button>
+                    <button class="btn btn-delete" onclick='deleteCat("${cat.id}")'>Delete</button>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+// Search
+document.getElementById('search').oninput = e => {
+    const term = e.target.value.toLowerCase();
+    const filtered = allCategories.filter(c => c.name.toLowerCase().includes(term) || c.slug.includes(term));
+    renderCategories(filtered);
+}
+
+// Edit
+window.openEdit = (id) => {
+    editId = id;
+    const cat = allCategories.find(c => c.id === id);
+    document.getElementById('editName').value = cat.name;
+    document.getElementById('editSlug').value = cat.slug;
+    document.getElementById('editPreview').src = cat.image;
+    document.getElementById('editModal').style.display = 'flex';
+}
+
+document.getElementById('editName').oninput = e => {
+    document.getElementById('editSlug').value = e.target.value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+}
+
+document.getElementById('editImage').onchange = e => {
+    newImageFile = e.target.files[0];
+    document.getElementById('editPreview').src = URL.createObjectURL(newImageFile);
+}
+
+document.getElementById('cancelBtn').onclick = () => {
+    document.getElementById('editModal').style.display = 'none';
+    newImageFile = null;
+}
+
+document.getElementById('saveBtn').onclick = async () => {
+    const name = document.getElementById('editName').value;
+    const slug = document.getElementById('editSlug').value;
+    let imageUrl = document.getElementById('editPreview').src;
+
+    if(newImageFile){
+        const formData = new FormData();
+        formData.append("image", newImageFile);
+        const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {method:"POST",body:formData});
+        const data = await res.json();
+        imageUrl = data.data.url;
+    }
+
+    await updateDoc(doc(db, "categories", editId), {name, slug, image: imageUrl});
+    alert("✅ Update Successful");
+    document.getElementById('editModal').style.display = 'none';
+    loadCategories();
+    newImageFile = null;
+}
+
+// Delete
+window.deleteCat = async (id) => {
+    if(confirm("আপনি কি এই Category ডিলিট করতে চান?")){
+        await deleteDoc(doc(db, "categories", id));
+        alert("🗑️ Deleted");
+        loadCategories();
+    }
+}
+
+loadCategories();
+</script>
+</body>
+</html>
