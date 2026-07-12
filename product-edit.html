@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Product Edit - chainapaikari</title>
+<link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600;700&family=Poppins:wght@700&display=swap" rel="stylesheet">
+<style>
+:root{--primary:#00c8ff;--accent:#00ff88;--danger:#ef4444;--bg1:#0f172a;--bg2:#1e293b;}
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Hind Siliguri',sans-serif;}
+body{min-height:100vh;background:linear-gradient(135deg,var(--bg1) 0%,var(--bg2) 100%);padding:20px;color:#e2e8f0;}
+.card{max-width:800px;margin:20px auto;background:rgba(255,255,255,.06);backdrop-filter:blur(20px);padding:35px;border-radius:25px;border:1px solid rgba(255,255,255,.1);}
+h2{text-align:center;font-family:'Poppins';margin-bottom:30px;font-size:28px;background:linear-gradient(90deg,var(--primary),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+label{font-weight:600;margin-top:18px;display:block;color:#94a3b8;font-size:14px;}
+input,select,textarea{width:100%;padding:14px;margin-top:8px;border-radius:12px;border:2px solid rgba(255,255,255,.1);background:rgba(0,0,0,.2);color:#fff;font-size:16px;}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary);}
+textarea{min-height:120px;resize:vertical;}
+.price-grid{display:grid;grid-template-columns:1fr 1fr;gap:15px;}
+.upload-box{border:2px dashed var(--primary);border-radius:15px;padding:25px;text-align:center;cursor:pointer;background:rgba(0,200,255,.05);margin-top:10px;}
+.upload-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:12px;margin-top:15px;}
+.img-wrap{position:relative;}
+.preview-img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:12px;border:2px solid var(--accent);}
+.img-wrap .remove{position:absolute;top:-8px;right:-8px;background:#ef4444;color:#fff;border:none;border-radius:50%;width:26px;height:26px;cursor:pointer;font-weight:700;font-size:16px;}
+.keyword-box{display:flex;gap:10px;margin-top:8px;}
+.btn-add{padding:14px 20px;background:var(--primary);color:#0f172a;border:none;border-radius:10px;font-weight:700;cursor:pointer;}
+.keyword-list{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}
+.keyword-tag{background:rgba(0,200,255,.15);padding:6px 12px;border-radius:20px;font-size:13px;display:flex;align-items:center;gap:5px;}
+.keyword-tag span{cursor:pointer;color:var(--danger);font-weight:700;}
+#updateBtn{background:#334155;cursor:not-allowed;width:100%;padding:16px;margin-top:25px;color:#fff;font-weight:700;font-size:17px;border:none;border-radius:12px;}
+#updateBtn.active{background:linear-gradient(90deg,var(--primary),var(--accent));cursor:pointer;color:#0f172a;}
+.top-bar{display:flex;justify-content:space-between;margin-bottom:20px;}
+.top-bar a{color:var(--primary);font-weight:700;text-decoration:none;}
+#status{text-align:center;margin-top:15px;font-weight:600;}
+.old-img-label{font-size:12px;color:#94a3b8;margin-top:5px;text-align:center;}
+</style>
+</head>
+<body>
+
+<div class="card">
+<div class="top-bar">
+    <a href="dashboard.html">← Dashboard</a>
+    <span id="logout" style="color:var(--danger);cursor:pointer;font-weight:700;">Logout</span>
+</div>
+
+<h2>Product Edit করুন</h2>
+
+<form id="productForm">
+    <label>Category Select *</label>
+    <select id="category" required>
+        <option value="">Category লোড হচ্ছে...</option>
+    </select>
+
+    <div class="price-grid">
+        <div>
+            <label>আগের দাম *</label>
+            <input type="number" id="oldPrice" required>
+        </div>
+        <div>
+            <label>বর্তমান দাম *</label>
+            <input type="number" id="currentPrice" required>
+        </div>
+    </div>
+
+    <label>Description *</label>
+    <textarea id="description" required></textarea>
+
+    <label>Product Name *</label>
+    <input type="text" id="name" required>
+
+    <label>Keywords</label>
+    <div class="keyword-box">
+        <input type="text" id="keywordInput" placeholder="keyword লিখে Add চাপুন">
+        <button type="button" class="btn-add" id="addKeyword">Add</button>
+    </div>
+    <div class="keyword-list" id="keywordList"></div>
+
+    <label>Product Images <small style="color:#94a3b8;">পুরাতন ছবি ডিলিট + নতুন যোগ</small></label>
+    <div class="upload-box" id="uploadBox">
+        <p><b>+ নতুন ছবি যোগ করুন</b></p>
+    </div>
+    <input type="file" id="image" accept="image/*" multiple style="display:none;">
+    <div class="upload-grid" id="previewGrid"></div>
+
+    <button type="submit" id="updateBtn">Update Product</button>
+</form>
+<div id="status"></div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, collection, getDocs, doc, getDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyA5q-gEWhHbBB_kn0ZDNPYXC2urpSbpPd8",
+  authDomain: "chaina-paikari.firebaseapp.com",
+  projectId: "chaina-paikari",
+  storageBucket: "chaina-paikari.firebasestorage.app",
+  messagingSenderId: "968909884753",
+  appId: "1:968909884753:web:88ab6754c2edda39bb1770"
+};
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const IMGBB_API_KEY = "e0d64cd3256c82a5e199de2c51f57d5e";
+
+// URL থেকে ID নাও
+const urlParams = new URLSearchParams(window.location.search);
+const productId = urlParams.get('id');
+
+// Auth Guard
+onAuthStateChanged(auth, user => {
+    if(!user) window.location.href = "index.html";
+})
+document.getElementById('logout').onclick = () => signOut(auth);
+
+let existingImages = []; // আগের ছবি
+let newCompressedFiles = []; // নতুন ছবি
+let keywords = [];
+let productData = {}; // আগের ডাটা
+
+document.addEventListener('DOMContentLoaded', () => {
+    if(!productId){
+        document.getElementById('status').innerText = "❌ Product ID পাওয়া যায়নি";
+        return;
+    }
+    loadProductData();
+    initEvents();
+})
+
+function initEvents(){
+    document.getElementById('uploadBox').onclick = () => document.getElementById('image').click();
+
+    document.getElementById('image').onchange = async (e) => {
+      const files = Array.from(e.target.files);
+      for(let file of files){
+        const compressed = await compressImage(file, 1280, 0.75);
+        newCompressedFiles.push(compressed);
+        addPreview(compressed);
+      }
+      checkForm();
+      e.target.value = '';
+    }
+
+    document.getElementById('addKeyword').onclick = addKeywordFunc;
+    document.getElementById('keywordInput').onkeypress = (e) => {
+        if(e.key === 'Enter'){ e.preventDefault(); addKeywordFunc(); }
+    }
+
+    ['name','description','oldPrice','currentPrice','category'].forEach(id=>{
+        document.getElementById(id).oninput = checkForm;
+    })
+    document.getElementById('productForm').onsubmit = handleUpdate;
+}
+
+async function loadProductData(){
+    document.getElementById('status').innerText = "Product Data লোড হচ্ছে...";
+    const docRef = doc(db, "products", productId);
+    const docSnap = await getDoc(docRef);
+
+    if(!docSnap.exists()){
+        document.getElementById('status').innerText = "❌ Product পাওয়া যায়নি";
+        return;
+    }
+
+    productData = docSnap.data();
+    document.getElementById('name').value = productData.name || '';
+    document.getElementById('description').value = productData.description || '';
+    document.getElementById('oldPrice').value = productData.oldPrice || 0;
+    document.getElementById('currentPrice').value = productData.currentPrice || 0;
+    keywords = productData.keywords || [];
+    existingImages = productData.images || [];
+
+    await loadCategories(); // Category লোড করে তারপর select করবে
+    
+    renderKeywords();
+    renderExistingImages();
+    checkForm();
+    document.getElementById('status').innerText = "";
+}
+
+function renderExistingImages(){
+    document.getElementById('previewGrid').innerHTML = '';
+    existingImages.forEach((url, index) => {
+        const wrap = document.createElement('div');
+        wrap.className = 'img-wrap';
+        wrap.innerHTML = `
+            <img src="${url}" class="preview-img">
+            <button type="button" class="remove" onclick="removeExistingImage(${index})">×</button>
+            <p class="old-img-label">পুরাতন</p>
+        `;
+        document.getElementById('previewGrid').appendChild(wrap);
+    });
+}
+window.removeExistingImage = (i) => {
+    existingImages.splice(i,1);
+    renderExistingImages();
+    checkForm();
+}
+
+function addPreview(file){
+    const wrap = document.createElement('div');
+    wrap.className = 'img-wrap';
+    wrap.innerHTML = `
+        <img src="${URL.createObjectURL(file)}" class="preview-img">
+        <button type="button" class="remove" onclick="removeNewImage(this, '${file.name}')">×</button>
+        <p class="old-img-label">নতুন</p>
+    `;
+    document.getElementById('previewGrid').appendChild(wrap);
+}
+window.removeNewImage = (btn, name) => {
+    newCompressedFiles = newCompressedFiles.filter(f => f.name !== name);
+    btn.parentElement.remove();
+    checkForm();
+}
+
+function addKeywordFunc(){
+    const val = document.getElementById('keywordInput').value.trim();
+    if(val &&!keywords.includes(val)){
+        keywords.push(val);
+        renderKeywords();
+        document.getElementById('keywordInput').value = '';
+    }
+}
+
+function renderKeywords(){
+    document.getElementById('keywordList').innerHTML = keywords.map((k,i) =>
+        `<div class="keyword-tag">${k} <span onclick="removeKeyword(${i})">×</span></div>`
+    ).join('');
+}
+window.removeKeyword = (i) => { keywords.splice(i,1); renderKeywords(); }
+
+async function loadCategories(){
+    const select = document.getElementById('category');
+    const snapshot = await getDocs(collection(db, "categories"));
+    const cats = snapshot.docs.map(doc => ({id: doc.id,...doc.data()}));
+    cats.sort((a,b) => a.name.localeCompare(b.name));
+    select.innerHTML = '<option value="">Category Select করুন *</option>';
+    cats.forEach(cat => {
+        select.innerHTML += `<option value="${cat.id}">${cat.name}</option>`;
+    });
+    // আগের category auto select
+    select.value = productData.categoryId;
+}
+
+// FIXED: blob অ্যাড করলাম
+function compressImage(file, maxWidth, quality){
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target.result;
+
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        let { width, height } = img;
+
+        if (width > maxWidth) {
+          height *= maxWidth / width;
+          width = maxWidth;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+
+        canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+
+        canvas.toBlob((blob) => {
+          resolve(
+            new File(
+              [blob],
+              file.name.replace(/\.[^/.]+$/, "") + ".webp",
+              {
+                type: "image/webp",
+                lastModified: Date.now()
+              }
+            )
+          );
+        }, "image/webp", quality);
+      };
+    };
+  });
+}
+
+function checkForm(){
+    const btn = document.getElementById('updateBtn');
+    btn.classList.add('active');
+    btn.disabled = false;
+}
+
+async function handleUpdate(e){
+  e.preventDefault();
+  const btn = document.getElementById('updateBtn');
+  btn.disabled = true;
+  btn.innerText = "Updating... ⏳";
+
+  try {
+    // নতুন ছবি আপলোড
+    let newImageUrls = [];
+    for(let i=0; i<newCompressedFiles.length; i++){
+        document.getElementById('status').innerText = `Uploading ${i+1}/${newCompressedFiles.length}...`;
+        const formData = new FormData();
+        formData.append("image", newCompressedFiles[i]);
+        const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
+    method: "POST",
+    body: formData
+});
+
+const imgData = await res.json();
+
+if (imgData.success) {
+    newImageUrls.push(imgData.data.url);
+} else {
+    throw new Error(imgData.error?.message || "Image upload failed");
+}
+}
+    // পুরাতন + নতুন ছবি একসাথে
+    const allImages = [...existingImages, ...newImageUrls];
+
+    await updateDoc(doc(db, "products", productId), {
+      name: document.getElementById('name').value,
+      description: document.getElementById('description').value,
+      images: allImages,
+      oldPrice: Number(document.getElementById('oldPrice').value),
+      currentPrice: Number(document.getElementById('currentPrice').value),
+      keywords: keywords,
+      categoryId: document.getElementById('category').value,
+      updatedAt: serverTimestamp()
+    });
+
+    document.getElementById('status').style.color = '#00ff88';
+    document.getElementById('status').innerText = "✅ Product Updated!";
+    setTimeout(() => window.location.href = "product-list.html", 1500);
+  } catch(err){
+    document.getElementById('status').style.color = 'var(--danger)';
+    document.getElementById('status').innerText = "❌ Error: " + err.message;
+    btn.disabled = false;
+    btn.innerText = "Update Product";
+  }
+}
+</script>
+</body>
+</html>
