@@ -40,7 +40,7 @@ const auth = getAuth(app);
 
 // লগিন করা থাকলে সোজা category পেজে পাঠায় দিবে
 onAuthStateChanged(auth, user => {
-  if(user) window.location.href = "category.html";
+  if(user) window.location.href = "dashboard.html";
 })
 
 document.getElementById('loginBtn').onclick = async () => {
@@ -49,7 +49,7 @@ document.getElementById('loginBtn').onclick = async () => {
   const error = document.getElementById('error');
   try {
     await signInWithEmailAndPassword(auth, email, password);
-    window.location.href = "category.html";
+    window.location.href = "dashboard.html";
   } catch (err) {
     error.innerText = "❌ ইমেইল অথবা পাসওয়ার্ড ভুল";
   }
