@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Login - chainapaikari</title>
+<link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@600;700&display=swap" rel="stylesheet">
+<style>
+body{font-family:'Hind Siliguri';background:radial-gradient(ellipse at center, #1e3a8a 0%, #0a0f1e 100%);display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0;}
+.card{width:90%;max-width:400px;background:rgba(15,23,42,.7);backdrop-filter:blur(20px);padding:40px;border-radius:20px;border:1px solid rgba(0,242,255,.3);text-align:center;}
+h2{color:#00f2ff;margin-bottom:25px;}
+input{width:100%;padding:14px;margin-top:12px;border-radius:10px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.08);color:#fff;font-size:16px;box-sizing:border-box;}
+button{width:100%;padding:14px;margin-top:20px;background:linear-gradient(90deg,#00ff88,#00f2ff);color:#0a0f1e;font-weight:700;font-size:18px;border:none;border-radius:10px;cursor:pointer;}
+#error{color:#ff3b5c;margin-top:15px;font-weight:600;}
+</style>
+</head>
+<body>
+<div class="card">
+<h2>Admin Login 🔒</h2>
+<input type="email" id="email" placeholder="ইমেইল" value="mmrsbd2@gmail.com">
+<input type="password" id="password" placeholder="পাসওয়ার্ড">
+<button id="loginBtn">লগিন করুন</button>
+<div id="error"></div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyA5q-gEWhHbBB_kn0ZDNPYXC2urpSbpPd8",
+  authDomain: "chaina-paikari.firebaseapp.com",
+  projectId: "chaina-paikari",
+  storageBucket: "chaina-paikari.firebasestorage.app",
+  messagingSenderId: "968909884753",
+  appId: "1:968909884753:web:88ab6754c2edda39bb1770"
+};
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+
+// লগিন করা থাকলে সোজা category পেজে পাঠায় দিবে
+onAuthStateChanged(auth, user => {
+  if(user) window.location.href = "category.html";
+})
+
+document.getElementById('loginBtn').onclick = async () => {
+  const email = document.getElementById('email').value;
+  const password = document.getElementById('password').value;
+  const error = document.getElementById('error');
+  try {
+    await signInWithEmailAndPassword(auth, email, password);
+    window.location.href = "category.html";
+  } catch (err) {
+    error.innerText = "❌ ইমেইল অথবা পাসওয়ার্ড ভুল";
+  }
+}
+</script>
+</body>
+</html>
