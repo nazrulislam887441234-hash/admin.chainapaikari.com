@@ -336,6 +336,11 @@ async function uploadToImgBB(file){
   formData.append("image", file);
   const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {method: "POST", body: formData});
   const data = await res.json();
+
+  // Error Check অ্যাড করলাম
+  if(!res.ok || !data.success){
+      throw new Error(`ছবি আপলোড হয়নি। imgbb: ${data.error?.message || 'Unknown Error'}`);
+  }
   return data.data.url;
 }
 
