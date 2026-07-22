@@ -292,6 +292,11 @@ async function handleSubmit(e){
         formData.append("image", compressedFiles[i]);
         const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {method:"POST",body:formData});
         const imgData = await res.json();
+
+        // Error Check
+        if(!res.ok ||!imgData.success){
+            throw new Error(`ছবি ${i+1} আপলোড হয়নি। imgbb: ${imgData.error?.message || 'Unknown Error'}`);
+        }
         imageUrls.push(imgData.data.url);
     }
 
@@ -312,7 +317,7 @@ async function handleSubmit(e){
     setTimeout(() => window.location.href = "dashboard.html", 1500);
   } catch(err){
     document.getElementById('status').style.color = 'var(--danger)';
-    document.getElementById('status').innerText = "❌ Error: " + err.message;
+    document.getElementById('status').innerText = "❌ Error: " + err.message; // এখন সুন্দর Error দেখাবে
     btn.disabled = false;
     btn.innerText = "Upload Product";
   }
