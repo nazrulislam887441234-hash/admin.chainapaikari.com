@@ -95,7 +95,7 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-const IMGBB_API_KEY = "78b96e02ef49049995a9f46a7d62fcd5";
+const IMGBB_API_KEY = "66eddb56876c5803445f41302121a9b9";
 let allCategories = [];
 let editId = null;
 let newImageFile = null;
@@ -175,6 +175,12 @@ document.getElementById('saveBtn').onclick = async () => {
         formData.append("image", newImageFile);
         const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {method:"POST",body:formData});
         const data = await res.json();
+        
+        // এই ৩ লাইন নতুন অ্যাড করেন
+        if(!res.ok || !data.success){
+            alert("❌ ছবি আপলোড হয়নি। imgbb Error: " + data.error.message);
+            return;
+        }
         imageUrl = data.data.url;
     }
 
