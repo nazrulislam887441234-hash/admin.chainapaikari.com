@@ -285,11 +285,22 @@ function compressImage(file, maxWidth, quality){
 }
 
 function checkForm(){
+    const name = document.getElementById('name').value;
+    const desc = document.getElementById('description').value;
+    const oldP = document.getElementById('oldPrice').value;
+    const newP = document.getElementById('currentPrice').value;
+    const cat = document.getElementById('category').value;
     const btn = document.getElementById('updateBtn');
-    btn.classList.add('active');
-    btn.disabled = false;
-}
 
+    // পুরাতন ছবি 1 টাও না থাকলে + নতুন ছবিও না থাকলে Disable
+    if(name && desc && oldP && newP && cat && (existingImages.length > 0 || newCompressedFiles.length > 0)){
+        btn.classList.add('active');
+        btn.disabled = false;
+    } else {
+        btn.classList.remove('active');
+        btn.disabled = true;
+    }
+}
 async function handleUpdate(e){
   e.preventDefault();
   const btn = document.getElementById('updateBtn');
@@ -307,6 +318,13 @@ async function handleUpdate(e){
     method: "POST",
     body: formData
 });
+const imgData = await res.json();
+
+// এই 3 লাইন দিয়ে চেক
+if(!res.ok || !imgData.success){
+    throw new Error(`ছবি ${i+1} আপলোড হয়নি। imgbb: ${imgData.error?.message || 'Unknown Error'}`);
+}
+newImageUrls.push(imgData.data.url);
 
 const imgData = await res.json();
 
